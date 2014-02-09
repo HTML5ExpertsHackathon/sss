@@ -54,6 +54,7 @@ var userList = [];
 var chatList = [];
 var playerList = [];
 var instList = {};
+var scores = {};
 
 // PeerJSオブジェクトを生成
 var peer = new Peer(userName,{ key: APIKEY});
@@ -175,12 +176,15 @@ function checkSound() {
         if ( currentBeat === null) endMusic();
         else currentBeat.data.forEach(playSound);
     }
-    count = count + interval;
+    count += interval;
 }
 
 function endMusic() {
     isSession = false;
     window.clearInterval(timer);
+    for (var i = 0, player; player = playerList[i]; i++) {
+        $('#history ul').prepend('<li>' + player + ' score: ' + scores[player] + '</li>');
+    }
 }
 
 // 難易度を設定する
@@ -202,6 +206,11 @@ function setDifficulty() {
 function startMusic() {
     setDifficulty();
     
+    // スコアのリセット
+    for (var i = 0, player; player = playerList[i]; i++) {
+        console.log(player);
+    }
+    
     // 音楽用のタイマー
     timer = window.setInterval(checkSound, interval);
     checkSound();
@@ -209,10 +218,13 @@ function startMusic() {
 }
 
 function setPlayerList(player){
-    for(var i=0; i < playerList.length && playerList[i] != player ; i++);
-    if(i == playerList.length) playerList[playerList.length] = player;
-    $('#session').append(player);
-
+    // playerがplayerListの配列にあるかどうかを確認する
+    if (playerList.indexOf(player) < 0) {
+        playerList.push(player); // playerList配列に追加
+        $('#session').append(player);
+        scores[player] = 0; // スコアのリセット
+    }
+    
     if(playerList.length == chatList.length) {
         console.log("all mens ready!");
         heartBeat();
@@ -250,13 +262,15 @@ function getTransferLag(data){
     // console.log('Transfer lag time : ' + data.user + ' ' + lag/2 + 'ms');
 }
 
-function showTiming(key, isGood) {
+function doScore(data, isGood) {
     if (isGood) {
-        $('sounds-' + key).trigger('check:great');
+        $('sounds-' + data.key).trigger('check:great');
         $('#history ul').prepend('<li>Great!</li>');
+        scores[data.user] += 50;
     } else {
-        $('sounds-' + key).trigger('check:miss');
+        $('sounds-' + data.key).trigger('check:miss');
         $('#history ul').prepend('<li>Oops</li>');
+        scores[data.user] += 20;
     }
 }
 
@@ -269,9 +283,9 @@ function checkAccuracy(data) {
         for (var i = 0, len = currentBeat.data.length; i < len; i++) {
             if (currentBeat.data[i].key === data.key) {
                 if (soundTime - currentBeat.time * multiplier < margin) {
-                    showTiming(data.key, true);
+                    doScore(data, true);
                 } else {
-                    showTiming(data.key, false);
+                    doScore(data, false);
                 }
             }
         }
@@ -280,9 +294,9 @@ function checkAccuracy(data) {
         for (var i = 0, len = nextBeat.data.length; i < len; i++) {
             if (nextBeat.data[i].key === data.key) {
                 if (nextBeat.time * multiplier - soundTime < margin) {
-                    showTiming(data.key, true);
+                    doScore(data, true);
                 } else {
-                    showTiming(data.key, false);
+                    doScore(data, false);
                 }
             }
         }
