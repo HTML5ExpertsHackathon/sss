@@ -2,19 +2,29 @@
 // CONFIG OPTIONS START
 
 var accuracy = 8; // 1 = crotchet, 2 = quaver, 4 = semi-quaver, 8 = demi-semi-quaver
-var bpm = 100; // beats per minute
-var margin = 200; // How many milliseconds to forgive missed beats
-var muted = []; // List muted (silent) instruments
 
 // CONFIG OPTIONS END
 
 // Audio speed settings
 var count = 0;
-var bps = bpm / 60; // beats per second
-var interval = (1000 / bps / accuracy) >> 0; // seconds per beat
-var multiplier = interval * accuracy;
-var timer;
-var countdown;
+var timer, countdown, bpm, margin, bps, interval, multiplier;
+var muted = []; // List muted (silent) instruments
+
+// Difficulty levels
+var levels = {
+    'easy': {
+        bpm: 100, // beats per minute
+        margin: 200 // How many milliseconds to forgive missed beats
+    },
+    'normal': {
+        bpm: 120,
+        margin: 150
+    },
+    'hard': {
+        bpm: 140,
+        margin: 100
+    }
+}
 
 var currentBeat = {};
 var lag = 0; // Time lag across the network
@@ -173,13 +183,30 @@ function endMusic() {
     window.clearInterval(timer);
 }
 
+// 難易度を設定する
+function setDifficulty() {
+    var difficulties = document.querySelectorAll('input[name=difficulty]');
+    
+    for (var i = 0, difficulty; difficulty = difficulties[i]; i++) {
+        if (difficulty.checked) {
+            bpm = levels[difficulty.value].bpm; // beats per minute
+            margin = levels[difficulty.value].margin; // How many milliseconds to forgive missed beats
+        }
+    }
+    
+    bps = bpm / 60; // beats per second
+    interval = (1000 / bps / accuracy) >> 0; // seconds per beat
+    multiplier = interval * accuracy;
+}
+
 function startMusic() {
+    setDifficulty();
+    
     // 音楽用のタイマー
     timer = window.setInterval(checkSound, interval);
     checkSound();
     isSession = true;
 }
-
 
 function setPlayerList(player){
     for(var i=0; i < playerList.length && playerList[i] != player ; i++);
